@@ -35,7 +35,9 @@ import org.cloudburstmc.server.command.CommandSender;
 import org.cloudburstmc.server.item.Item;
 import org.cloudburstmc.server.player.Player;
 import org.cloudburstmc.server.plugin.PluginBase;
+import org.cloudburstmc.server.registry.BlockRegistry;
 import org.cloudburstmc.server.registry.ItemRegistry;
+import org.cloudburstmc.server.utils.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,36 +79,15 @@ public class CloudburstWorldEdit extends PluginBase {
         WorldEdit.getInstance().getPlatformManager().register(platform);
         WorldEdit.getInstance().getEventBus().post(new PlatformReadyEvent());
 
-
-
-        for (Material material : Material.values()) {
-            if (material.isBlock() && !material.isLegacy()) {
-                BlockType.REGISTRY.register(material.getKey().toString(), new BlockType(material.getKey().toString(), blockState -> {
-                    // TODO Use something way less hacky than this.
-                    ParserContext context = new ParserContext();
-                    context.setPreferringWildcard(true);
-                    context.setTryLegacy(false);
-                    context.setRestricted(false);
-                    try {
-                        FuzzyBlockState state = (FuzzyBlockState) WorldEdit.getInstance().getBlockFactory().parseFromInput(
-                                BukkitAdapter.adapt(blockState.getBlockType()).createBlockData().getAsString(), context
-                        ).toImmutableState();
-                        BlockState defaultState = blockState.getBlockType().getAllStates().get(0);
-                        for (Map.Entry<Property<?>, Object> propertyObjectEntry : state.getStates().entrySet()) {
-                            //noinspection unchecked
-                            defaultState = defaultState.with((Property<Object>) propertyObjectEntry.getKey(), propertyObjectEntry.getValue());
-                        }
-                        return defaultState;
-                    } catch (InputParseException e) {
-                        getLogger().log(Level.WARNING, "Error loading block state for " + material.getKey(), e);
-                        return blockState;
-                    }
-                }));
-            }
-            if (material.isItem() && !material.isLegacy()) {
-                ItemType.REGISTRY.register(material.getKey().toString(), new ItemType(material.getKey().toString()));
-            }
+        for (Identifier itemIdentifier : ItemRegistry.get().getItems()) {
+            ItemType.REGISTRY.register(itemIdentifier.toString(), new ItemType(itemIdentifier.toString()));
         }
+
+        for (org.cloudburstmc.server.block.BlockState blockState : BlockRegistry.get().getBlockStates()) {
+            BlockType.REGISTRY.register(blockState.getType().toString(), new BlockType(blockState.getType().toString()));
+        }
+
+        getServer().getPluginManager().registerEvents(new CloudburstListener(this), this);
 
         getLogger().info("WorldEdit for Cloudburst (version " + getDescription().getVersion() + ") is loaded");
     }

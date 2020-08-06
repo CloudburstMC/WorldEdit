@@ -123,6 +123,9 @@ public class SelectionCommands {
             return;
         }
 
+        System.out.println(session + " - " + session.hashCode());
+        System.out.println(pos.toVector().toBlockPoint());
+        System.out.println(session.getRegionSelector(world));
         if (!session.getRegionSelector(world).selectPrimary(pos.toVector().toBlockPoint(), ActorSelectorLimits.forActor(actor))) {
             actor.printError(TranslatableComponent.of("worldedit.pos.already-set"));
             return;

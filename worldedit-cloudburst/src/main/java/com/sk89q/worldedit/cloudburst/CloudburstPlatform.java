@@ -68,7 +68,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
     public Collection<Actor> getConnectedUsers() {
         List<Actor> users = new ArrayList<>();
         for (org.cloudburstmc.server.player.Player player : plugin.getServer().getOnlinePlayers().values()) {
-            users.add(plugin.wrapPlayer(player));
+            users.add(new CloudburstPlayer(player));
         }
         return users;
     }
