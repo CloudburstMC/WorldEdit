@@ -19,26 +19,25 @@
 
 package com.sk89q.worldedit.cloudburst;
 
-import com.sk89q.worldedit.util.formatting.text.Component;
-import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
-import com.sk89q.worldedit.util.translation.TranslationManager;
-import com.sk89q.worldedit.world.biome.BiomeData;
-import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.registry.BiomeRegistry;
-import org.cloudburstmc.server.level.biome.Biome;
+import com.sk89q.worldedit.world.registry.BundledRegistries;
 
-public class CloudburstBiomeRegistry implements BiomeRegistry {
+public class CloudburstRegistries extends BundledRegistries {
+
+    private static final CloudburstRegistries INSTANCE = new CloudburstRegistries();
+    private final BiomeRegistry biomeRegistry = new CloudburstBiomeRegistry();
 
     @Override
-    public Component getRichName(BiomeType biomeType) {
-        return TranslatableComponent.of(
-                TranslationManager.makeTranslationKey("biome", biomeType.getId())
-        );
+    public BiomeRegistry getBiomeRegistry() {
+        return biomeRegistry;
     }
 
-    @Override
-    public BiomeData getData(BiomeType biome) {
-        Biome cloudburstBiome = CloudburstAdapter.adapt(biome);
-        return cloudburstBiome == null ? null : cloudburstBiome.getId()::getName;
+    /**
+     * Get a static instance.
+     *
+     * @return an instance
+     */
+    public static CloudburstRegistries getInstance() {
+        return INSTANCE;
     }
 }

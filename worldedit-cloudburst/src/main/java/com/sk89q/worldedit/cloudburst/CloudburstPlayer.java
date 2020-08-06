@@ -1,11 +1,24 @@
+/*
+ * WorldEdit, a Minecraft world manipulation toolkit
+ * Copyright (C) sk89q <http://www.sk89q.com>
+ * Copyright (C) WorldEdit team and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.sk89q.worldedit.cloudburst;
 
-import cn.nukkit.AdventureSettings;
-import cn.nukkit.Server;
-import cn.nukkit.item.Item;
-import cn.nukkit.player.Player;
-import cn.nukkit.utils.TextFormat;
-import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.entity.BaseEntity;
@@ -24,19 +37,22 @@ import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import com.sk89q.worldedit.world.gamemode.GameMode;
 import com.sk89q.worldedit.world.gamemode.GameModes;
+import org.cloudburstmc.server.AdventureSettings;
+import org.cloudburstmc.server.Server;
+import org.cloudburstmc.server.item.Item;
+import org.cloudburstmc.server.player.Player;
+import org.cloudburstmc.server.utils.TextFormat;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class CloudburstPlayer extends AbstractPlayerActor {
 
     private final Player player;
-    private final CloudburstWorldEdit plugin;
 
-    public CloudburstPlayer(Player player, CloudburstWorldEdit plugin) {
+    public CloudburstPlayer(Player player) {
         this.player = player;
-        this.plugin = plugin;
     }
 
     @Override
@@ -52,7 +68,8 @@ public class CloudburstPlayer extends AbstractPlayerActor {
 
     @Override
     public BaseBlock getBlockInHand(HandSide handSide) throws WorldEditException {
-
+        Item item = handSide.equals(HandSide.MAIN_HAND) ? player.getInventory().getItemInHand() : player.getInventory().getOffHand();
+        return CloudburstAdapter.asBlockState(item).toBaseBlock();
     }
 
     @Override
@@ -67,7 +84,7 @@ public class CloudburstPlayer extends AbstractPlayerActor {
 
     @Override
     public void giveItem(BaseItemStack itemStack) {
-        player.getInventory().addItem(CloudburstAdapter.adapt(itemStack))
+        player.getInventory().addItem(CloudburstAdapter.adapt(itemStack));
     }
 
     @Override
@@ -134,12 +151,12 @@ public class CloudburstPlayer extends AbstractPlayerActor {
 
     @Override
     public GameMode getGameMode() {
-        return GameModes.get(player.getGamemode().getName().toLowerCase());
+        return GameModes.get(player.getGamemode().getName().toLowerCase(getLocale()));
     }
 
     @Override
     public void setGameMode(GameMode gameMode) {
-        player.setGamemode(cn.nukkit.player.GameMode.from(gameMode.getId()));
+        player.setGamemode(org.cloudburstmc.server.player.GameMode.from(gameMode.getId()));
     }
 
     @Override
@@ -172,10 +189,9 @@ public class CloudburstPlayer extends AbstractPlayerActor {
         return player.getLocale();
     }
 
-    @org.jetbrains.annotations.Nullable
     @Override
     public BaseEntity getState() {
-        return null;
+        throw new UnsupportedOperationException("Cannot create a state from this object");
     }
 
     @Override

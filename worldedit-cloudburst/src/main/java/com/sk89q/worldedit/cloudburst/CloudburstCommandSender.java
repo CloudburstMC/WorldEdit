@@ -1,17 +1,34 @@
+/*
+ * WorldEdit, a Minecraft world manipulation toolkit
+ * Copyright (C) sk89q <http://www.sk89q.com>
+ * Copyright (C) WorldEdit team and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.sk89q.worldedit.cloudburst;
 
-import cn.nukkit.command.CommandSender;
-import cn.nukkit.player.Player;
-import cn.nukkit.utils.TextFormat;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.internal.cui.CUIEvent;
 import com.sk89q.worldedit.session.SessionKey;
-import com.sk89q.worldedit.util.auth.AuthorizationException;
 import com.sk89q.worldedit.util.formatting.WorldEditText;
 import com.sk89q.worldedit.util.formatting.text.Component;
+import org.cloudburstmc.server.command.CommandSender;
+import org.cloudburstmc.server.player.Player;
+import org.cloudburstmc.server.utils.TextFormat;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Locale;
 import java.util.UUID;
@@ -27,9 +44,9 @@ public class CloudburstCommandSender implements Actor {
     private static final UUID DEFAULT_ID = UUID.fromString("a233eb4b-4cab-42cd-9fd9-7e7b9a3f74be");
 
     private final CommandSender sender;
-    private final SpongeWorldEdit plugin;
+    private final CloudburstWorldEdit plugin;
 
-    public CloudburstCommandSender(SpongeWorldEdit plugin, CommandSender sender) {
+    public CloudburstCommandSender(CloudburstWorldEdit plugin, CommandSender sender) {
         checkNotNull(plugin);
         checkNotNull(sender);
         checkArgument(!(sender instanceof Player), "Cannot wrap a player");

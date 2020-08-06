@@ -19,26 +19,34 @@
 
 package com.sk89q.worldedit.cloudburst;
 
-import com.sk89q.worldedit.util.formatting.text.Component;
-import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
-import com.sk89q.worldedit.util.translation.TranslationManager;
-import com.sk89q.worldedit.world.biome.BiomeData;
-import com.sk89q.worldedit.world.biome.BiomeType;
-import com.sk89q.worldedit.world.registry.BiomeRegistry;
-import org.cloudburstmc.server.level.biome.Biome;
+import com.sk89q.util.yaml.YAMLProcessor;
+import com.sk89q.worldedit.util.YAMLConfiguration;
+import com.sk89q.worldedit.util.report.Unreported;
+import org.slf4j.LoggerFactory;
 
-public class CloudburstBiomeRegistry implements BiomeRegistry {
+import java.io.File;
 
-    @Override
-    public Component getRichName(BiomeType biomeType) {
-        return TranslatableComponent.of(
-                TranslationManager.makeTranslationKey("biome", biomeType.getId())
-        );
+public class CloudburstConfiguration extends YAMLConfiguration {
+
+    public boolean noOpPermissions = false;
+    public boolean commandBlockSupport = false;
+    @Unreported
+    private final CloudburstWorldEdit plugin;
+
+    public CloudburstConfiguration(YAMLProcessor config, CloudburstWorldEdit plugin) {
+        super(config, LoggerFactory.getLogger(plugin.getLogger().getName()));
+        this.plugin = plugin;
     }
 
     @Override
-    public BiomeData getData(BiomeType biome) {
-        Biome cloudburstBiome = CloudburstAdapter.adapt(biome);
-        return cloudburstBiome == null ? null : cloudburstBiome.getId()::getName;
+    public void load() {
+        super.load();
+        noOpPermissions = config.getBoolean("no-op-permissions", false);
+        commandBlockSupport = config.getBoolean("command-block-support", false);
+    }
+
+    @Override
+    public File getWorkingDirectory() {
+        return plugin.getDataFolder();
     }
 }

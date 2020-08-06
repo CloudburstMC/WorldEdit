@@ -1,43 +1,84 @@
+/*
+ * WorldEdit, a Minecraft world manipulation toolkit
+ * Copyright (C) sk89q <http://www.sk89q.com>
+ * Copyright (C) WorldEdit team and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.sk89q.worldedit.cloudburst;
 
-import cn.nukkit.Server;
-import cn.nukkit.level.Level;
-import cn.nukkit.registry.EntityRegistry;
-import cn.nukkit.scheduler.TaskHandler;
-import cn.nukkit.utils.Identifier;
 import com.google.common.collect.ImmutableSet;
 import com.sk89q.worldedit.LocalConfiguration;
+import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.entity.Player;
-import com.sk89q.worldedit.extension.platform.*;
+import com.sk89q.worldedit.event.platform.CommandEvent;
+import com.sk89q.worldedit.extension.platform.AbstractPlatform;
+import com.sk89q.worldedit.extension.platform.Actor;
+import com.sk89q.worldedit.extension.platform.Capability;
+import com.sk89q.worldedit.extension.platform.MultiUserPlatform;
+import com.sk89q.worldedit.extension.platform.Preference;
 import com.sk89q.worldedit.util.SideEffect;
-import com.sk89q.worldedit.world.DataFixer;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.registry.Registries;
+import org.cloudburstmc.server.Server;
+import org.cloudburstmc.server.command.CommandSender;
+import org.cloudburstmc.server.command.data.CommandData;
+import org.cloudburstmc.server.level.Level;
+import org.cloudburstmc.server.registry.EntityRegistry;
+import org.cloudburstmc.server.scheduler.TaskHandler;
+import org.cloudburstmc.server.utils.Identifier;
 import org.enginehub.piston.CommandManager;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class CloudburstPlatform extends AbstractPlatform implements MultiUserPlatform {
 
     private final CloudburstWorldEdit plugin;
+    private boolean hookingEvents = false;
 
     public CloudburstPlatform(CloudburstWorldEdit plugin) {
         this.plugin = plugin;
     }
 
+    public boolean isHookingEvents() {
+        return hookingEvents;
+    }
+
     @Override
     public Collection<Actor> getConnectedUsers() {
-        return null;
+        List<Actor> users = new ArrayList<>();
+        for (org.cloudburstmc.server.player.Player player : plugin.getServer().getOnlinePlayers().values()) {
+            users.add(plugin.wrapPlayer(player));
+        }
+        return users;
     }
 
     @Override
     public Registries getRegistries() {
-
+        return CloudburstRegistries.getInstance();
     }
 
+    //TODO If there is something internally
     @Override
     public int getDataVersion() {
-        return 2567;
+        return -1;
     }
 
     @Override
@@ -49,21 +90,24 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
         return EntityRegistry.get().getEntityType(identifier) != null;
     }
 
-    @todo
     @Override
     public void reload() {
         plugin.loadConfiguration();
     }
 
-    @org.jetbrains.annotations.Nullable
     @Override
     public Player matchPlayer(Player player) {
-        return null;
+        if (player instanceof CloudburstPlayer) {
+            return player;
+        } else {
+            org.cloudburstmc.server.player.Player cloudburstPlayer = plugin.getServer().getPlayerExact(player.getName());
+            return cloudburstPlayer != null ? plugin.wrapPlayer(cloudburstPlayer) : null;
+        }
     }
 
     @Override
     public CloudburstWorld matchWorld(World world) {
-        if(world instanceof CloudburstWorld) {
+        if (world instanceof CloudburstWorld) {
             return (CloudburstWorld) world;
         } else {
             Level level = Server.getInstance().getLevel(world.getName());
@@ -71,21 +115,34 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
         }
     }
 
-    @todo
     @Override
     public void registerCommands(CommandManager commandManager) {
+        commandManager.getAllCommands().forEach(command -> {
+            String[] aliases = new String[command.getAliases().size()];
+            for (int i = 0; i < command.getAliases().size(); i++) {
+                aliases[i] = command.getAliases().get(i);
+            }
+            org.cloudburstmc.server.command.Command cloudburstCommand = new org.cloudburstmc.server.command.Command(CommandData.builder(command.getName()).addAliases(aliases).build()) {
+                @Override
+                public boolean execute(CommandSender commandSender, String s, String[] strings) {
+                    CommandEvent weEvent = new CommandEvent(plugin.wrapCommandSource(commandSender), command.getName() + " " + String.join(" ", strings));
+                    WorldEdit.getInstance().getEventBus().post(weEvent);
+                    return !weEvent.isCancelled();
+                }
+            };
 
+            plugin.getServer().getCommandRegistry().register(plugin, cloudburstCommand);
+        });
     }
 
-    @todo
     @Override
     public void registerGameHooks() {
-
+        hookingEvents = true;
     }
 
     @Override
     public LocalConfiguration getConfiguration() {
-        return null;
+        return plugin.getConfiguration();
     }
 
     @Override
@@ -107,7 +164,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
     public Map<Capability, Preference> getCapabilities() {
         Map<Capability, Preference> capabilities = new EnumMap<>(Capability.class);
         capabilities.put(Capability.CONFIGURATION, Preference.NORMAL);
-        capabilities.put(Capability.WORLDEDIT_CUI, Preference.NORMAL);
+        capabilities.put(Capability.WORLDEDIT_CUI, Preference.PREFER_OTHERS);
         capabilities.put(Capability.GAME_HOOKS, Preference.NORMAL);
         capabilities.put(Capability.PERMISSIONS, Preference.NORMAL);
         capabilities.put(Capability.USER_COMMANDS, Preference.NORMAL);
@@ -139,10 +196,5 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
         }
 
         return ret;
-    }
-
-    @Override
-    public DataFixer getDataFixer() {
-
     }
 }
