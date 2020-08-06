@@ -186,7 +186,7 @@ public class CloudburstPlayer extends AbstractPlayerActor {
 
     @Override
     public Locale getLocale() {
-        return player.getLocale();
+        return Locale.ENGLISH;
     }
 
     @Override

@@ -34,14 +34,18 @@ import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BlockState;
+import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.item.ItemType;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.cloudburstmc.server.Server;
+import org.cloudburstmc.server.block.Block;
+import org.cloudburstmc.server.block.BlockStates;
 import org.cloudburstmc.server.item.Item;
 import org.cloudburstmc.server.level.Level;
 import org.cloudburstmc.server.level.biome.Biome;
 import org.cloudburstmc.server.registry.BiomeRegistry;
+import org.cloudburstmc.server.registry.BlockRegistry;
 import org.cloudburstmc.server.utils.Identifier;
 
 import java.util.Collections;
@@ -92,6 +96,7 @@ public class CloudburstAdapter {
     private static final Map<String, BlockState> blockStateStringCache = new HashMap<>();
 
     public static BlockState adapt(org.cloudburstmc.server.block.BlockState blockState) {
+        System.out.println("ADAPT! " + blockState.toString());
         return blockStateStringCache.computeIfAbsent(blockState.toString(), input -> {
             try {
                 return WorldEdit.getInstance().getBlockFactory().parseFromInput(input, TO_BLOCK_CONTEXT).toImmutableState();
@@ -124,6 +129,14 @@ public class CloudburstAdapter {
         Vector3 position = location.toVector();
         return org.cloudburstmc.server.level.Location.from(Vector3f.from(position.getX(), position.getY(), position.getZ()),
                 location.getYaw(), location.getPitch(), adapt((World) location.getExtent()));
+    }
+
+    public static org.cloudburstmc.server.block.BlockState adapt(BlockType blockType) {
+        return BlockRegistry.get().getBlock(Identifier.fromString(blockType.getId()));
+    }
+
+    public static org.cloudburstmc.server.block.BlockState adapt(BlockState blockState) {
+        return BlockRegistry.get().getBlock(Identifier.fromString(blockState.getBlockType().getId()));
     }
 
     public static Location adapt(org.cloudburstmc.server.level.Location location) {
@@ -159,7 +172,9 @@ public class CloudburstAdapter {
     }
 
     public static BaseItemStack adapt(Item item) {
-        return new BaseItemStack(ItemType.REGISTRY.get(item.getId().toString()), CloudburstAdapter.adapt(item.getTag()), item.getCount());
+        System.out.println(item.getId().toString());
+        System.out.println(ItemType.REGISTRY.get(item.getId().getName()));
+        return new BaseItemStack(ItemType.REGISTRY.get(item.getId().getName()), CloudburstAdapter.adapt(item.getTag()), item.getCount());
     }
 
     public static Item adapt(BaseItemStack itemStack) {

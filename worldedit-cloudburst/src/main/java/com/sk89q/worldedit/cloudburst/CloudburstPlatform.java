@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit.cloudburst;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.WorldEdit;
@@ -47,6 +48,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CloudburstPlatform extends AbstractPlatform implements MultiUserPlatform {
 
@@ -115,24 +118,52 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
         }
     }
 
+    //TODO Clean this up
     @Override
     public void registerCommands(CommandManager commandManager) {
+        plugin.getLogger().info("Registering commands!");
         commandManager.getAllCommands().forEach(command -> {
-            String[] aliases = new String[command.getAliases().size()];
+            String name = command.getName().replaceAll("!", "");
+            /*if (name.isEmpty()) {
+                name = "/worldedit";
+            }*/
+
+            List<String> aliases = new ArrayList<>();
             for (int i = 0; i < command.getAliases().size(); i++) {
-                aliases[i] = command.getAliases().get(i);
+                String alias = command.getAliases().get(i).replaceAll("!", "").replaceAll(",", "").replaceAll(";", "");
+                if (!alias.isEmpty()) {
+                    aliases.add(alias);
+                }
             }
-            org.cloudburstmc.server.command.Command cloudburstCommand = new org.cloudburstmc.server.command.Command(CommandData.builder(command.getName()).addAliases(aliases).build()) {
+
+            final String finalName = name;
+            org.cloudburstmc.server.command.Command cloudburstCommand = new org.cloudburstmc.server.command.Command(CommandData.builder(finalName).addAliases(aliases.toArray(new String[0])).build()) {
                 @Override
                 public boolean execute(CommandSender commandSender, String s, String[] strings) {
-                    CommandEvent weEvent = new CommandEvent(plugin.wrapCommandSource(commandSender), command.getName() + " " + String.join(" ", strings));
-                    WorldEdit.getInstance().getEventBus().post(weEvent);
-                    return !weEvent.isCancelled();
+                    String arguments = rebuildArguments(s, strings);
+                    CommandEvent event = new CommandEvent(plugin.wrapCommandSource(commandSender), arguments);
+                    WorldEdit.getInstance().getEventBus().post(event);
+                    return true;
                 }
             };
 
+            plugin.getLogger().info("Registering " + name);
+
             plugin.getServer().getCommandRegistry().register(plugin, cloudburstCommand);
         });
+    }
+
+    private String rebuildArguments(String commandLabel, String[] args) {
+        int plSep = commandLabel.indexOf(":");
+        if (plSep >= 0 && plSep < commandLabel.length() + 1) {
+            commandLabel = commandLabel.substring(plSep + 1);
+        }
+
+        StringBuilder sb = new StringBuilder("/").append(commandLabel);
+        if (args.length > 0) {
+            sb.append(" ");
+        }
+        return Joiner.on(" ").appendTo(sb, args).toString();
     }
 
     @Override

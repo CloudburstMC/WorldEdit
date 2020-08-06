@@ -20,12 +20,14 @@
 package com.sk89q.worldedit.cloudburst;
 
 import com.sk89q.worldedit.world.registry.BiomeRegistry;
+import com.sk89q.worldedit.world.registry.BlockRegistry;
 import com.sk89q.worldedit.world.registry.BundledRegistries;
 
 public class CloudburstRegistries extends BundledRegistries {
 
     private static final CloudburstRegistries INSTANCE = new CloudburstRegistries();
     private final BiomeRegistry biomeRegistry = new CloudburstBiomeRegistry();
+    private final BlockRegistry blockRegistry = new CloudburstBlockRegistry();
 
     @Override
     public BiomeRegistry getBiomeRegistry() {
@@ -39,5 +41,10 @@ public class CloudburstRegistries extends BundledRegistries {
      */
     public static CloudburstRegistries getInstance() {
         return INSTANCE;
+    }
+
+    @Override
+    public BlockRegistry getBlockRegistry() {
+        return blockRegistry;
     }
 }
