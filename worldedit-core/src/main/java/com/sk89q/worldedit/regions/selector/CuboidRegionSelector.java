@@ -55,6 +55,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
      */
     public CuboidRegionSelector() {
         this((World) null);
+        System.out.println("NEW CUBOID REGION SELECTOR NO ARGUMENTS");
     }
 
     /**
@@ -63,6 +64,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
      * @param world the world, which may be {@code null}
      */
     public CuboidRegionSelector(@Nullable World world) {
+        System.out.println("NEW CUBOID REGION WITH ARGUMENTS " + world);
         region = new CuboidRegion(world, BlockVector3.ZERO, BlockVector3.ZERO);
     }
 
@@ -73,6 +75,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
      */
     public CuboidRegionSelector(RegionSelector oldSelector) {
         this(checkNotNull(oldSelector).getIncompleteRegion().getWorld());
+        System.out.println("NEW CUBOID REGION WITH ARGUMENTS VERSION TWO " + oldSelector);
 
         if (oldSelector instanceof CuboidRegionSelector) {
             final CuboidRegionSelector cuboidRegionSelector = (CuboidRegionSelector) oldSelector;
@@ -104,6 +107,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
      */
     public CuboidRegionSelector(@Nullable World world, BlockVector3 position1, BlockVector3 position2) {
         this(world);
+        System.out.println("NEW CUBOID REGION WITH ARGUMENTS VERSION THREE " + world + " " + position1 + " " + position2);
         checkNotNull(position1);
         checkNotNull(position2);
         this.position1 = position1;
@@ -120,6 +124,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
 
     @Override
     public void setWorld(@Nullable World world) {
+        System.out.println("WORLD IS SET");
         region.setWorld(world);
     }
 
@@ -129,6 +134,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
 
         System.out.println(position);
         System.out.println(position1);
+        System.out.println(region);
 
         if (position.equals(position1)) {
             return false;
@@ -136,6 +142,9 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
 
         position1 = position;
         region.setPos1(position1);
+
+        System.out.println(position1);
+        System.out.println(region);
         return true;
     }
 
@@ -242,6 +251,7 @@ public class CuboidRegionSelector implements RegionSelector, CUIRegion {
 
     @Override
     public void clear() {
+        System.out.println("CLEAR IS CALLED!");
         position1 = null;
         position2 = null;
         region.setPos1(BlockVector3.ZERO);

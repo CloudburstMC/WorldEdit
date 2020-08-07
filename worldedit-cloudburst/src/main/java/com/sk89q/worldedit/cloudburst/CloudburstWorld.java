@@ -111,12 +111,18 @@ public class CloudburstWorld extends AbstractWorld {
 
         Vector3i pos = Vector3i.from(position.getBlockX(), position.getBlockY(), position.getBlockZ());
         BlockState blockState = getBlockState(block);
+        System.out.println("SET BLOCK IS BEING CALLED! WOEHOE " + pos + " - " + blockState.getType());
+        System.out.println("OLD BLOCK " + world.getBlock(pos).getState().getType());
         world.getBlock(pos).set(blockState);
+        System.out.println("NEW BLOCK " + world.getBlock(pos).getState().getType());
         return false;
     }
 
     protected BlockState getBlockState(BlockStateHolder<?> block) {
         if (block instanceof com.sk89q.worldedit.world.block.BlockState) {
+            BlockState state = BlockPalette.INSTANCE.getDefaultState(Identifier.fromString(block.getBlockType().getId()));
+            return state != null ? state : BlockStates.AIR;
+        } else if (block instanceof BaseBlock) {
             BlockState state = BlockPalette.INSTANCE.getDefaultState(Identifier.fromString(block.getBlockType().getId()));
             return state != null ? state : BlockStates.AIR;
         } else {
@@ -230,5 +236,27 @@ public class CloudburstWorld extends AbstractWorld {
     @Override
     public BaseBlock getFullBlock(BlockVector3 position) {
         return getBlock(position).toBaseBlock();
+    }
+
+    @Override
+    public int hashCode() {
+        return getWorld().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        final Level ref = worldRef.get();
+        if (ref == null) {
+            return false;
+        } else if (other == null) {
+            return false;
+        } else if ((other instanceof CloudburstWorld)) {
+            Level otherWorld = ((CloudburstWorld) other).worldRef.get();
+            return ref.equals(otherWorld);
+        } else if (other instanceof com.sk89q.worldedit.world.World) {
+            return ((com.sk89q.worldedit.world.World) other).getName().equals(ref.getName());
+        } else {
+            return false;
+        }
     }
 }

@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -84,7 +85,10 @@ public class CloudburstWorldEdit extends PluginBase {
         }
 
         for (org.cloudburstmc.server.block.BlockState blockState : BlockRegistry.get().getBlockStates()) {
-            BlockType.REGISTRY.register(blockState.getType().toString(), new BlockType(blockState.getType().toString()));
+            String identifier = blockState.getType().toString().toLowerCase(Locale.ROOT);
+            if (BlockType.REGISTRY.get(identifier) == null) {
+                BlockType.REGISTRY.register(identifier, new BlockType(identifier));
+            }
         }
 
         getServer().getPluginManager().registerEvents(new CloudburstListener(this), this);

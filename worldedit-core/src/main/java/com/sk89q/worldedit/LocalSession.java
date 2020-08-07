@@ -149,7 +149,9 @@ public class LocalSession {
      * Called on post load of the session from persistent storage.
      */
     public void postLoad() {
+        System.out.println("POST LOAD IS INITIALIZED " + defaultSelector);
         if (defaultSelector != null) {
+            System.out.println("POST LOAD IS SUCCESSFULLY CALLED");
             this.selector = defaultSelector.createSelector();
         }
     }
@@ -329,8 +331,10 @@ public class LocalSession {
      * @return position the position
      */
     public RegionSelector getRegionSelector(World world) {
+        System.out.println("LOCALSESSION - GETREGIONSELECTOR " + world + " - " + selector.getWorld());
         checkNotNull(world);
         if (selector.getWorld() == null || !selector.getWorld().equals(world)) {
+            System.out.println("WORLD CHANGE!");
             selector.setWorld(world);
             selector.clear();
             if (hasWorldOverride() && !world.equals(getWorldOverride())) {
@@ -350,6 +354,7 @@ public class LocalSession {
         checkNotNull(world);
         checkNotNull(selector);
         selector.setWorld(world);
+        System.out.println("SET REGION SELECTOR CALLED IN LOCAL SESSION");
         this.selector = selector;
         if (hasWorldOverride() && !world.equals(getWorldOverride())) {
             setWorldOverride(null);

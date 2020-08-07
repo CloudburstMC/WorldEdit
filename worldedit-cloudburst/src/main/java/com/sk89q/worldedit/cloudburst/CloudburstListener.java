@@ -25,9 +25,11 @@ import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.World;
 import org.cloudburstmc.server.block.Block;
+import org.cloudburstmc.server.block.BlockStates;
 import org.cloudburstmc.server.event.EventHandler;
 import org.cloudburstmc.server.event.EventPriority;
 import org.cloudburstmc.server.event.Listener;
+import org.cloudburstmc.server.event.block.BlockBreakEvent;
 import org.cloudburstmc.server.event.player.PlayerGameModeChangeEvent;
 import org.cloudburstmc.server.event.player.PlayerInteractEvent;
 
@@ -41,6 +43,7 @@ public class CloudburstListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
+        System.out.println(plugin.getPlatform().isHookingEvents());
         if (!plugin.getPlatform().isHookingEvents()) {
             return;
         }
@@ -50,7 +53,7 @@ public class CloudburstListener implements Listener {
         World world = player.getWorld();
         Direction direction = CloudburstAdapter.adapt(event.getFace());
 
-        if (event.getAction().equals(PlayerInteractEvent.Action.LEFT_CLICK_BLOCK)) {
+        /*if (event.getAction().equals(PlayerInteractEvent.Action.LEFT_CLICK_BLOCK)) {
             Block clickedBlock = event.getBlock();
             Location location = new Location(world, clickedBlock.getX(), clickedBlock.getY(), clickedBlock.getZ());
 
@@ -65,7 +68,8 @@ public class CloudburstListener implements Listener {
             if (worldEdit.handleArmSwing(player)) {
                 event.setCancelled(true);
             }
-        } else if (event.getAction().equals(PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK)) {
+        } else */
+        if (event.getAction().equals(PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK)) {
             Block clickedBlock = event.getBlock();
             Location location = new Location(world, clickedBlock.getX(), clickedBlock.getY(), clickedBlock.getZ());
 
@@ -78,6 +82,35 @@ public class CloudburstListener implements Listener {
             }
         } else if (event.getAction().equals(PlayerInteractEvent.Action.RIGHT_CLICK_AIR)) {
             if (worldEdit.handleRightClick(player)) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (!plugin.getPlatform().isHookingEvents()) {
+            return;
+        }
+
+        WorldEdit worldEdit = WorldEdit.getInstance();
+        Player player = plugin.wrapPlayer(event.getPlayer());
+        World world = player.getWorld();
+        Direction direction = CloudburstAdapter.adapt(event.getFace());
+
+        if (event.getBlock().getState().equals(BlockStates.AIR)) {
+            if (worldEdit.handleArmSwing(player)) {
+                event.setCancelled(true);
+            }
+        } else {
+            Block clickedBlock = event.getBlock();
+            Location location = new Location(world, clickedBlock.getX(), clickedBlock.getY(), clickedBlock.getZ());
+
+            if (worldEdit.handleBlockLeftClick(player, location, direction)) {
+                event.setCancelled(true);
+            }
+
+            if (worldEdit.handleArmSwing(player)) {
                 event.setCancelled(true);
             }
         }
