@@ -41,19 +41,16 @@ import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import org.cloudburstmc.server.Server;
 import org.cloudburstmc.server.block.Block;
-import org.cloudburstmc.server.block.BlockPalette;
 import org.cloudburstmc.server.block.BlockState;
-import org.cloudburstmc.server.block.BlockStates;
 import org.cloudburstmc.server.blockentity.Chest;
 import org.cloudburstmc.server.inventory.DoubleChestInventory;
 import org.cloudburstmc.server.inventory.Inventory;
 import org.cloudburstmc.server.inventory.InventoryHolder;
 import org.cloudburstmc.server.level.Level;
-import org.cloudburstmc.server.utils.Identifier;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -99,7 +96,7 @@ public class CloudburstWorld extends AbstractWorld {
 
     @Override
     public Path getStoragePath() {
-        return Paths.get(Server.getInstance().getDataPath()).resolve("worlds").resolve(getId());
+        return Server.getInstance().getDataPath().resolve("worlds").resolve(getId());
     }
 
     @Override
@@ -111,20 +108,34 @@ public class CloudburstWorld extends AbstractWorld {
 
         Vector3i pos = Vector3i.from(position.getBlockX(), position.getBlockY(), position.getBlockZ());
         BlockState blockState = getBlockState(block);
-        System.out.println("SET BLOCK IS BEING CALLED! WOEHOE " + pos + " - " + blockState.getType());
-        System.out.println("OLD BLOCK " + world.getBlock(pos).getState().getType());
         world.getBlock(pos).set(blockState);
-        System.out.println("NEW BLOCK " + world.getBlock(pos).getState().getType());
         return false;
+    }
+
+    private static final Field STATE_FIELD;
+
+    static {
+        try {
+            STATE_FIELD = BaseBlock.class.getDeclaredField("blockState");
+            STATE_FIELD.setAccessible(true);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static com.sk89q.worldedit.world.block.BlockState getState(BaseBlock baseBlock) {
+        try {
+            return (com.sk89q.worldedit.world.block.BlockState) STATE_FIELD.get(baseBlock);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     protected BlockState getBlockState(BlockStateHolder<?> block) {
         if (block instanceof com.sk89q.worldedit.world.block.BlockState) {
-            BlockState state = BlockPalette.INSTANCE.getDefaultState(Identifier.fromString(block.getBlockType().getId()));
-            return state != null ? state : BlockStates.AIR;
+            return CloudburstAdapter.adapt((com.sk89q.worldedit.world.block.BlockState) block);
         } else if (block instanceof BaseBlock) {
-            BlockState state = BlockPalette.INSTANCE.getDefaultState(Identifier.fromString(block.getBlockType().getId()));
-            return state != null ? state : BlockStates.AIR;
+            return CloudburstAdapter.adapt(getState((BaseBlock) block));
         } else {
             throw new UnsupportedOperationException("Missing Cloudburst adapter for WorldEdit!");
         }
@@ -179,14 +190,13 @@ public class CloudburstWorld extends AbstractWorld {
 
     @Override
     public void dropItem(Vector3 position, BaseItemStack item) {
-        Level world = getWorld();
-        world.dropItem(Vector3f.from(position.getX(), position.getY(), position.getZ()), CloudburstAdapter.adapt(item));
+        getWorld().dropItem(Vector3f.from(position.getX(), position.getY(), position.getZ()), CloudburstAdapter.adapt(item));
     }
 
     @Override
     public void simulateBlockMine(BlockVector3 position) {
         //TODO implement with the correct usage when the api is done
-        getWorld().getBlock(position.getBlockX(), position.getBlockY(), position.getBlockZ()).set(BlockStates.AIR);
+        getWorld().useBreakOn(Vector3i.from(position.getBlockX(), position.getBlockY(), position.getBlockZ()));
     }
 
     @Override

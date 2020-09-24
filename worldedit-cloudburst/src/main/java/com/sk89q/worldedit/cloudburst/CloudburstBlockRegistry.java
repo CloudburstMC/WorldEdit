@@ -27,11 +27,13 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import com.sk89q.worldedit.world.registry.BundledBlockRegistry;
 import com.sk89q.worldedit.world.registry.PassthroughBlockMaterial;
 import org.cloudburstmc.server.block.BlockStates;
+import org.cloudburstmc.server.block.trait.BlockTrait;
 import org.cloudburstmc.server.registry.BlockRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 
 public class CloudburstBlockRegistry extends BundledBlockRegistry {
     private final Map<org.cloudburstmc.server.block.BlockState, CloudburstBlockMaterial> materialMap = new HashMap<>();
@@ -51,10 +53,18 @@ public class CloudburstBlockRegistry extends BundledBlockRegistry {
     }
 
 
-    //TODO
+    @SuppressWarnings("unchecked")
     @Override
     public Map<String, ? extends Property<?>> getProperties(BlockType blockType) {
-        return super.getProperties(blockType);
+        Map<String, ? super Property<?>> properties = new HashMap<>();
+
+        Set<BlockTrait<?>> traits = CloudburstAdapter.adapt(blockType).getTraits().keySet();
+        for (BlockTrait<?> trait : traits) {
+            Property<?> property = CloudburstAdapter.adapt(trait);
+            properties.put(property.getName(), property);
+        }
+
+        return (Map<String, ? extends Property<?>>) properties;
     }
 
     @Override
@@ -73,7 +83,7 @@ public class CloudburstBlockRegistry extends BundledBlockRegistry {
 
         @Override
         public boolean isAir() {
-            return block.equals(BlockStates.AIR);
+            return block == BlockStates.AIR;
         }
 
         @Override

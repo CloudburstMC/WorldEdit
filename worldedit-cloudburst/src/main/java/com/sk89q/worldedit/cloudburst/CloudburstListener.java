@@ -26,14 +26,13 @@ import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.World;
 import org.cloudburstmc.server.block.Block;
 import org.cloudburstmc.server.block.BlockStates;
-import org.cloudburstmc.server.event.EventHandler;
 import org.cloudburstmc.server.event.EventPriority;
 import org.cloudburstmc.server.event.Listener;
 import org.cloudburstmc.server.event.block.BlockBreakEvent;
 import org.cloudburstmc.server.event.player.PlayerGameModeChangeEvent;
 import org.cloudburstmc.server.event.player.PlayerInteractEvent;
 
-public class CloudburstListener implements Listener {
+public class CloudburstListener {
 
     private final CloudburstWorldEdit plugin;
 
@@ -41,9 +40,8 @@ public class CloudburstListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
+    @Listener
     public void onPlayerInteract(PlayerInteractEvent event) {
-        System.out.println(plugin.getPlatform().isHookingEvents());
         if (!plugin.getPlatform().isHookingEvents()) {
             return;
         }
@@ -87,7 +85,7 @@ public class CloudburstListener implements Listener {
         }
     }
 
-    @EventHandler
+    @Listener
     public void onBlockBreak(BlockBreakEvent event) {
         if (!plugin.getPlatform().isHookingEvents()) {
             return;
@@ -116,7 +114,7 @@ public class CloudburstListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @Listener(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onGamemodeChange(PlayerGameModeChangeEvent event) {
         if (!plugin.getPlatform().isHookingEvents()) {
             return;

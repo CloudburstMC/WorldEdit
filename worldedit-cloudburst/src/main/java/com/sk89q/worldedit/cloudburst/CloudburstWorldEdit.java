@@ -19,81 +19,105 @@
 
 package com.sk89q.worldedit.cloudburst;
 
+import com.google.inject.Inject;
 import com.sk89q.util.yaml.YAMLProcessor;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.event.platform.PlatformReadyEvent;
-import com.sk89q.worldedit.extension.input.InputParseException;
-import com.sk89q.worldedit.extension.input.ParserContext;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.internal.anvil.ChunkDeleter;
-import com.sk89q.worldedit.registry.state.Property;
-import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockType;
-import com.sk89q.worldedit.world.block.FuzzyBlockState;
 import com.sk89q.worldedit.world.item.ItemType;
+import org.cloudburstmc.server.Server;
 import org.cloudburstmc.server.command.CommandSender;
-import org.cloudburstmc.server.item.Item;
+import org.cloudburstmc.server.event.Listener;
+import org.cloudburstmc.server.event.server.ServerInitializationEvent;
 import org.cloudburstmc.server.player.Player;
-import org.cloudburstmc.server.plugin.PluginBase;
+import org.cloudburstmc.server.plugin.Plugin;
+import org.cloudburstmc.server.plugin.PluginContainer;
 import org.cloudburstmc.server.registry.BlockRegistry;
 import org.cloudburstmc.server.registry.ItemRegistry;
 import org.cloudburstmc.server.utils.Identifier;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Locale;
-import java.util.Map;
-import java.util.logging.Level;
 
 import static com.sk89q.worldedit.internal.anvil.ChunkDeleter.DELCHUNKS_FILE_NAME;
 
-public class CloudburstWorldEdit extends PluginBase {
-
-    private static final Logger log = LoggerFactory.getLogger(CloudburstWorldEdit.class);
+@Plugin(
+        id = "WorldEdit",
+        name = "WorldEdit",
+        version = "7.2.0-SNAPSHOT"
+)
+public class CloudburstWorldEdit {
 
     private CloudburstPlatform platform;
     private CloudburstConfiguration config;
+    private final Path dataFolder;
+    private final Logger logger;
+    private final PluginContainer container;
 
-    @Override
-    public void onEnable() {
+    @Inject
+    public CloudburstWorldEdit(Logger logger, PluginContainer container) {
+        this.dataFolder = container.getDirectory();
+        this.logger = logger;
+        this.container = container;
+    }
+
+    @Listener
+    public void onInitialization(ServerInitializationEvent event) {
         if (this.platform != null) {
             getLogger().warn("onEnable occurred for a second time, maybe it's reloaded? Disabling the plugin anyways");
             WorldEdit.getInstance().getPlatformManager().unregister(platform);
-            getServer().getPluginManager().disablePlugin(this);
+            // Server.getInstance().getPluginManager().disablePlugin(this);
             return;
         }
 
-        final Path delChunks = getDataFolder().toPath().resolve(DELCHUNKS_FILE_NAME);
+        if (Files.notExists(this.dataFolder)) {
+            try {
+                Files.createDirectory(this.dataFolder);
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not create WorldEdit directory");
+            }
+        }
+        final Path delChunks = dataFolder.resolve(DELCHUNKS_FILE_NAME);
         if (Files.exists(delChunks)) {
             ChunkDeleter.runFromFile(delChunks, true);
         }
 
-        platform = new CloudburstPlatform(this);
         loadConfig();
-        WorldEdit.getInstance().getPlatformManager().register(platform);
-        WorldEdit.getInstance().getEventBus().post(new PlatformReadyEvent());
 
-        for (Identifier itemIdentifier : ItemRegistry.get().getItems()) {
-            ItemType.REGISTRY.register(itemIdentifier.toString(), new ItemType(itemIdentifier.toString()));
-        }
+        platform = new CloudburstPlatform(this);
+        WorldEdit.getInstance().getPlatformManager().register(platform);
 
         for (org.cloudburstmc.server.block.BlockState blockState : BlockRegistry.get().getBlockStates()) {
-            String identifier = blockState.getType().toString().toLowerCase(Locale.ROOT);
+            String identifier = blockState.getType().toString().toLowerCase(Locale.US);
             if (BlockType.REGISTRY.get(identifier) == null) {
                 BlockType.REGISTRY.register(identifier, new BlockType(identifier));
             }
+
+            if (ItemType.REGISTRY.get(identifier) == null) {
+                ItemType.REGISTRY.register(identifier, new ItemType(identifier));
+            }
         }
 
-        getServer().getPluginManager().registerEvents(new CloudburstListener(this), this);
+        for (Identifier itemIdentifier : ItemRegistry.get().getItems()) {
+            String identifier = itemIdentifier.toString().toLowerCase(Locale.US);
+            if (ItemType.REGISTRY.get(identifier) == null) {
+                ItemType.REGISTRY.register(identifier, new ItemType(identifier));
+            }
+        }
 
-        getLogger().info("WorldEdit for Cloudburst (version " + getDescription().getVersion() + ") is loaded");
+        WorldEdit.getInstance().getEventBus().post(new PlatformReadyEvent());
+
+        Server.getInstance().getEventManager().registerListeners(this, new CloudburstListener(this));
+
+        getLogger().info("WorldEdit for Cloudburst (version " + container.getVersion() + ") is loaded");
     }
 
     public CloudburstPlatform getPlatform() {
@@ -113,39 +137,42 @@ public class CloudburstWorldEdit extends PluginBase {
     }
 
     public Logger getLogger() {
-        return log;
+        return logger;
+    }
+
+    public PluginContainer getContainer() {
+        return container;
+    }
+
+    public File getDataFolder() {
+        return dataFolder.toFile();
     }
 
     private void loadConfig() {
         createDefaultConfiguration("config.yml"); // Create the default configuration file
 
-        config = new CloudburstConfiguration(new YAMLProcessor(new File(getDataFolder(), "config.yml"), true), this);
+        config = new CloudburstConfiguration(new YAMLProcessor(new File(this.dataFolder.toFile(), "config.yml"), true), this);
         config.load();
     }
 
     protected void createDefaultConfiguration(String name) {
-        File actual = new File(getDataFolder(), name);
-        if (!actual.exists()) {
-            try (InputStream stream = getResource("defaults/" + name)) {
+        Path path = this.dataFolder.resolve(name);
+        if (Files.notExists(path)) {
+            try (InputStream stream = CloudburstWorldEdit.class.getClassLoader().getResourceAsStream("defaults/" + name)) {
                 if (stream == null) {
-                    //throw new FileNotFoundException();
-                    actual.mkdirs();
-                    actual.createNewFile();
+                    Files.createDirectories(path.getParent());
+                    Files.createFile(path);
                 }
-                copyDefaultConfig(stream, actual, name);
+                copyDefaultConfig(stream, path, name);
             } catch (IOException e) {
                 getLogger().warn("Unable to read default configuration: " + name);
             }
         }
     }
 
-    private void copyDefaultConfig(InputStream input, File actual, String name) {
-        try (FileOutputStream output = new FileOutputStream(actual)) {
-            byte[] buf = new byte[8192];
-            int length;
-            while ((length = input.read(buf)) > 0) {
-                output.write(buf, 0, length);
-            }
+    private void copyDefaultConfig(InputStream input, Path actual, String name) {
+        try {
+            Files.copy(input, actual, StandardCopyOption.REPLACE_EXISTING);
 
             getLogger().info("Default configuration file written: " + name);
         } catch (IOException e) {

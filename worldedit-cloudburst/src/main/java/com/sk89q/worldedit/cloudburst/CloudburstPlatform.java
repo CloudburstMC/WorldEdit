@@ -65,7 +65,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
     @Override
     public Collection<Actor> getConnectedUsers() {
         List<Actor> users = new ArrayList<>();
-        for (org.cloudburstmc.server.player.Player player : plugin.getServer().getOnlinePlayers().values()) {
+        for (org.cloudburstmc.server.player.Player player : Server.getInstance().getOnlinePlayers().values()) {
             users.add(new CloudburstPlayer(player));
         }
         return users;
@@ -101,7 +101,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
         if (player instanceof CloudburstPlayer) {
             return player;
         } else {
-            org.cloudburstmc.server.player.Player cloudburstPlayer = plugin.getServer().getPlayerExact(player.getName());
+            org.cloudburstmc.server.player.Player cloudburstPlayer = Server.getInstance().getPlayerExact(player.getName());
             return cloudburstPlayer != null ? plugin.wrapPlayer(cloudburstPlayer) : null;
         }
     }
@@ -145,9 +145,9 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
                 }
             };
 
-            plugin.getLogger().info("Registering " + name);
+            plugin.getLogger().debug("Registering " + name);
 
-            plugin.getServer().getCommandRegistry().register(plugin, cloudburstCommand);
+            Server.getInstance().getCommandRegistry().register(plugin.getContainer(), cloudburstCommand);
         });
     }
 
@@ -176,7 +176,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public String getVersion() {
-        return plugin.getDescription().getVersion();
+        return plugin.getContainer().getVersion();
     }
 
     @Override
@@ -186,7 +186,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public String getPlatformVersion() {
-        return plugin.getDescription().getVersion();
+        return plugin.getContainer().getVersion();
     }
 
     @Override
@@ -208,7 +208,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public int schedule(long delay, long period, Runnable task) {
-        TaskHandler taskHandler = plugin.getServer().getScheduler().scheduleDelayedRepeatingTask(plugin,
+        TaskHandler taskHandler = Server.getInstance().getScheduler().scheduleDelayedRepeatingTask(plugin.getContainer(),
                 task,
                 (int) delay,
                 (int) period);
@@ -217,7 +217,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public List<World> getWorlds() {
-        Set<Level> worlds = plugin.getServer().getLevels();
+        Set<Level> worlds = Server.getInstance().getLevels();
         List<World> ret = new ArrayList<>(worlds.size());
 
         for (Level level : worlds) {

@@ -39,7 +39,7 @@ import com.sk89q.worldedit.world.gamemode.GameMode;
 import com.sk89q.worldedit.world.gamemode.GameModes;
 import org.cloudburstmc.server.AdventureSettings;
 import org.cloudburstmc.server.Server;
-import org.cloudburstmc.server.item.Item;
+import org.cloudburstmc.server.item.behavior.Item;
 import org.cloudburstmc.server.player.Player;
 import org.cloudburstmc.server.utils.TextFormat;
 

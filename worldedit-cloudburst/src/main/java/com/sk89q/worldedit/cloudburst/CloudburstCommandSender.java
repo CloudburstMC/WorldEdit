@@ -62,9 +62,7 @@ public class CloudburstCommandSender implements Actor {
 
     @Override
     public void printRaw(String msg) {
-        for (String part : msg.split("\n")) {
-            sender.sendMessage(TextFormat.colorize(msg));
-        }
+        sender.sendMessage(TextFormat.colorize(msg));
     }
 
     @Override
@@ -88,9 +86,7 @@ public class CloudburstCommandSender implements Actor {
     }
 
     private void sendColorized(String msg, TextFormat formatting) {
-        for (String part : msg.split("\n")) {
-            sender.sendMessage(formatting + TextFormat.colorize(part));
-        }
+        sender.sendMessage(formatting + TextFormat.colorize(msg));
     }
 
     @Override

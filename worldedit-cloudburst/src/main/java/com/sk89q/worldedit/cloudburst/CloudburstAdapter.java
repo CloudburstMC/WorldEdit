@@ -19,6 +19,8 @@
 
 package com.sk89q.worldedit.cloudburst;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.nbt.NbtMap;
 import com.sk89q.jnbt.CompoundTag;
@@ -28,7 +30,12 @@ import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.extension.input.InputParseException;
 import com.sk89q.worldedit.extension.input.ParserContext;
+import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.math.Vector3;
+import com.sk89q.worldedit.registry.state.BooleanProperty;
+import com.sk89q.worldedit.registry.state.EnumProperty;
+import com.sk89q.worldedit.registry.state.IntegerProperty;
+import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.World;
@@ -36,10 +43,13 @@ import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.item.ItemType;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import com.sk89q.worldedit.world.item.ItemTypes;
 import org.cloudburstmc.server.Server;
-import org.cloudburstmc.server.item.Item;
+import org.cloudburstmc.server.block.trait.BlockTrait;
+import org.cloudburstmc.server.block.trait.BooleanBlockTrait;
+import org.cloudburstmc.server.block.trait.EnumBlockTrait;
+import org.cloudburstmc.server.block.trait.IntegerBlockTrait;
+import org.cloudburstmc.server.item.behavior.Item;
 import org.cloudburstmc.server.level.Level;
 import org.cloudburstmc.server.level.biome.Biome;
 import org.cloudburstmc.server.registry.BiomeRegistry;
@@ -47,8 +57,10 @@ import org.cloudburstmc.server.registry.BlockRegistry;
 import org.cloudburstmc.server.utils.Identifier;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -90,19 +102,10 @@ public class CloudburstAdapter {
         TO_BLOCK_CONTEXT.setRestricted(false);
     }
 
-    private static final Int2ObjectMap<BlockState> blockStateCache = new Int2ObjectOpenHashMap<>();
-    private static final Map<String, BlockState> blockStateStringCache = new HashMap<>();
+    private static final BiMap<BlockState, org.cloudburstmc.server.block.BlockState> blockStateCache = HashBiMap.create();
 
     public static BlockState adapt(org.cloudburstmc.server.block.BlockState blockState) {
-        System.out.println("ADAPT! " + blockState.toString());
-        return blockStateStringCache.computeIfAbsent(blockState.toString(), input -> {
-            try {
-                return WorldEdit.getInstance().getBlockFactory().parseFromInput(input, TO_BLOCK_CONTEXT).toImmutableState();
-            } catch (InputParseException e) {
-                e.printStackTrace();
-                return null;
-            }
-        });
+        return BlockStateIdAccess.getBlockStateById(BlockRegistry.get().getRuntimeId(blockState));
     }
 
     public static BlockState asBlockState(Item item) throws WorldEditException {
@@ -133,8 +136,55 @@ public class CloudburstAdapter {
         return BlockRegistry.get().getBlock(Identifier.fromString(blockType.getId()));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static org.cloudburstmc.server.block.BlockState adapt(BlockState blockState) {
-        return BlockRegistry.get().getBlock(Identifier.fromString(blockState.getBlockType().getId()));
+        org.cloudburstmc.server.block.BlockState state = adapt(blockState.getBlockType());
+
+        for (Map.Entry<? extends Property<?>, Object> entry : blockState.getStates().entrySet()) {
+            BlockTrait<? extends Comparable<?>> trait = adapt(entry.getKey());
+
+            if (trait instanceof EnumBlockTrait) {
+                state = state.withTrait((EnumBlockTrait) trait, (Enum) trait.parseValue((String) entry.getValue()));
+            } else if (trait instanceof BooleanBlockTrait) {
+                state = state.withTrait((BooleanBlockTrait) trait, (boolean) entry.getValue());
+            } else if (trait instanceof IntegerBlockTrait) {
+                state = state.withTrait((IntegerBlockTrait) trait, (int) entry.getValue());
+            } else {
+                throw new IllegalStateException("Unable to find trait for " + entry.getKey());
+            }
+        }
+
+        blockStateCache.put(blockState, state);
+
+        return state;
+    }
+
+    private static final Map<Property<?>, BlockTrait<?>> propertyCache = new IdentityHashMap<>();
+
+    public static BlockTrait<? extends Comparable<?>> adapt(Property<?> property) {
+        return propertyCache.get(property);
+    }
+
+    public static Property<?> adapt(BlockTrait<?> trait) {
+        Property<?> property;
+
+        if (trait instanceof EnumBlockTrait) {
+            property = new EnumProperty(trait.getName(), ((EnumBlockTrait<? extends Enum<?>>) trait).getPossibleValues()
+                    .stream()
+                    .map(Enum::name)
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toList()));
+        } else if (trait instanceof IntegerBlockTrait) {
+            property = new IntegerProperty(trait.getName(), ((IntegerBlockTrait) trait).getPossibleValues());
+        } else if (trait instanceof BooleanBlockTrait) {
+            property = new BooleanProperty(trait.getName(), ((BooleanBlockTrait) trait).getPossibleValues());
+        } else {
+            throw new IllegalArgumentException("Unknown trait type " + trait);
+        }
+
+        propertyCache.put(property, trait);
+
+        return property;
     }
 
     public static Location adapt(org.cloudburstmc.server.level.Location location) {
@@ -170,9 +220,9 @@ public class CloudburstAdapter {
     }
 
     public static BaseItemStack adapt(Item item) {
-        System.out.println(item.getId().toString());
-        System.out.println(ItemType.REGISTRY.get(item.getId().getName()));
-        return new BaseItemStack(ItemType.REGISTRY.get(item.getId().getName()), CloudburstAdapter.adapt(item.getTag()), item.getCount());
+        String identifier = item.getId().toString().toLowerCase(Locale.US);
+        ItemType type = ItemTypes.get(identifier);
+        return new BaseItemStack(type, CloudburstAdapter.adapt(item.getTag()), item.getCount());
     }
 
     public static Item adapt(BaseItemStack itemStack) {

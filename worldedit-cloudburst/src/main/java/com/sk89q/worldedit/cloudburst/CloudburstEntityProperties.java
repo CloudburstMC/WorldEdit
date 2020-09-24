@@ -38,7 +38,7 @@ import org.cloudburstmc.server.entity.passive.Villager;
 import org.cloudburstmc.server.entity.vehicle.Boat;
 import org.cloudburstmc.server.entity.vehicle.Minecart;
 import org.cloudburstmc.server.entity.vehicle.TntMinecart;
-import org.cloudburstmc.server.item.Item;
+import org.cloudburstmc.server.item.behavior.Item;
 import org.cloudburstmc.server.player.Player;
 
 import static com.google.common.base.Preconditions.checkNotNull;

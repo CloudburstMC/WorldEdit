@@ -48,7 +48,6 @@ public class CuboidRegion extends AbstractRegion implements FlatRegion {
      */
     public CuboidRegion(BlockVector3 pos1, BlockVector3 pos2) {
         this(null, pos1, pos2);
-        System.out.println("CUBOIDREGION CONST ONE " + pos1 + " - " + pos2);
     }
 
     /**
@@ -60,7 +59,6 @@ public class CuboidRegion extends AbstractRegion implements FlatRegion {
      */
     public CuboidRegion(World world, BlockVector3 pos1, BlockVector3 pos2) {
         super(world);
-        System.out.println("CUBOIDREGION CONST TWO " + world + " - " + pos1 + " - " + pos2);
         checkNotNull(pos1);
         checkNotNull(pos2);
         this.pos1 = pos1;
@@ -83,7 +81,6 @@ public class CuboidRegion extends AbstractRegion implements FlatRegion {
      * @param pos1 a position
      */
     public void setPos1(BlockVector3 pos1) {
-        System.out.println("CUBOIDREGION SET POS 1 " + pos1);
         this.pos1 = pos1;
     }
 
