@@ -208,7 +208,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public int schedule(long delay, long period, Runnable task) {
-        TaskHandler taskHandler = Server.getInstance().getScheduler().scheduleDelayedRepeatingTask(plugin.getDescription(),
+        TaskHandler taskHandler = Server.getInstance().getScheduler().scheduleDelayedRepeatingTask(plugin.getContainer(),
                 task,
                 (int) delay,
                 (int) period);
