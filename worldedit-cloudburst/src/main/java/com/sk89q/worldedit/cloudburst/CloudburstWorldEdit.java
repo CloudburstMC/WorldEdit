@@ -34,6 +34,7 @@ import org.cloudburstmc.server.event.server.ServerInitializationEvent;
 import org.cloudburstmc.server.player.Player;
 import org.cloudburstmc.server.plugin.Plugin;
 import org.cloudburstmc.server.plugin.PluginContainer;
+import org.cloudburstmc.server.plugin.PluginDescription;
 import org.cloudburstmc.server.registry.BlockRegistry;
 import org.cloudburstmc.server.registry.ItemRegistry;
 import org.cloudburstmc.server.utils.Identifier;
@@ -60,13 +61,15 @@ public class CloudburstWorldEdit {
     private CloudburstConfiguration config;
     private final Path dataFolder;
     private final Logger logger;
-    private final PluginContainer container;
+    private final PluginDescription description;
+
+    private PluginContainer container;
 
     @Inject
-    public CloudburstWorldEdit(Logger logger, PluginContainer container) {
-        this.dataFolder = container.getDirectory();
+    public CloudburstWorldEdit(Logger logger, PluginDescription description, Path dataDirectory) {
         this.logger = logger;
-        this.container = container;
+        this.description = description;
+        this.dataFolder = dataDirectory;
     }
 
     @Listener
@@ -77,6 +80,9 @@ public class CloudburstWorldEdit {
             // Server.getInstance().getPluginManager().disablePlugin(this);
             return;
         }
+
+        this.container = Server.getInstance().getPluginManager().fromInstance(this).orElseThrow(() ->
+                new RuntimeException("Failed to get plugin container instance"));
 
         if (Files.notExists(this.dataFolder)) {
             try {
@@ -117,7 +123,7 @@ public class CloudburstWorldEdit {
 
         Server.getInstance().getEventManager().registerListeners(this, new CloudburstListener(this));
 
-        getLogger().info("WorldEdit for Cloudburst (version " + container.getVersion() + ") is loaded");
+        getLogger().info("WorldEdit for Cloudburst (version " + description.getVersion() + ") is loaded");
     }
 
     public CloudburstPlatform getPlatform() {
@@ -138,6 +144,10 @@ public class CloudburstWorldEdit {
 
     public Logger getLogger() {
         return logger;
+    }
+
+    public PluginDescription getDescription() {
+        return description;
     }
 
     public PluginContainer getContainer() {
