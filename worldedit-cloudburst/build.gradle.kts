@@ -10,7 +10,7 @@ plugins {
 repositories {
     maven {
         name = "Cloudburst"
-        url = uri("https://repo.nukkitx.com/snapshot/")
+        url = uri("https://repo.opencollab.dev/snapshot/")
     }
     mavenLocal()
 }

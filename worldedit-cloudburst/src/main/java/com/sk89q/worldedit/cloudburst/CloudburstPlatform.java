@@ -176,7 +176,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public String getVersion() {
-        return plugin.getContainer().getVersion();
+        return plugin.getDescription().getVersion();
     }
 
     @Override
@@ -186,7 +186,7 @@ public class CloudburstPlatform extends AbstractPlatform implements MultiUserPla
 
     @Override
     public String getPlatformVersion() {
-        return plugin.getContainer().getVersion();
+        return plugin.getDescription().getVersion();
     }
 
     @Override
